@@ -1,69 +1,46 @@
 package core
 
 import (
-	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/giovaborgogno/blockchain-in-go/crypto"
 	"github.com/giovaborgogno/blockchain-in-go/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHeader_Enconde_Decode(t *testing.T) {
-	h := &Header{
+func randomBlock(height uint32) *Block {
+	header := &Header{
 		Version:   1,
 		PrevBlock: types.RandomHash(),
+		Height:    height,
 		Timestamp: time.Now().UnixNano(),
-		Height:    10,
-		Nonce:     989394,
 	}
-
-	buf := &bytes.Buffer{}
-	assert.Nil(t, h.EncodeBinary(buf))
-
-	hDecode := &Header{}
-	assert.Nil(t, hDecode.DecodeBinary(buf))
-
-	assert.Equal(t, h, hDecode)
+	tx := Transaction{
+		Data: []byte("foo"),
+	}
+	return NewBlock(header, []Transaction{tx})
 }
 
-func TestBlock_Enconde_Decode(t *testing.T) {
-	h := Header{
-		Version:   1,
-		PrevBlock: types.RandomHash(),
-		Timestamp: time.Now().UnixNano(),
-		Height:    10,
-		Nonce:     989394,
-	}
-
-	b := &Block{
-		Header:       h,
-		Transactions: nil,
-	}
-
-	buf := &bytes.Buffer{}
-	assert.Nil(t, b.EncodeBinary(buf))
-
-	bDecode := &Block{}
-	assert.Nil(t, bDecode.DecodeBinary(buf))
-
-	assert.Equal(t, b, bDecode)
+func TestSignBlock(t *testing.T) {
+	privKey := crypto.GeneratePrivateKey()
+	b := randomBlock(0)
+	assert.Nil(t, b.Sign(privKey))
+	assert.Nil(t, b.Verify())
+	assert.NotNil(t, b.Signature)
 }
 
-func TestBlockHash(t *testing.T) {
-	h := Header{
-		Version:   1,
-		PrevBlock: types.RandomHash(),
-		Timestamp: time.Now().UnixNano(),
-		Height:    10,
-		Nonce:     989394,
-	}
+func TestVerifyBlock(t *testing.T) {
+	privKey := crypto.GeneratePrivateKey()
+	b := randomBlock(0)
+	assert.Nil(t, b.Sign(privKey))
+	assert.Nil(t, b.Verify())
 
-	b := &Block{
-		Header:       h,
-		Transactions: []Transaction{},
-	}
+	fmt.Println(b.HeaderData())
+	otherPrivKey := crypto.GeneratePrivateKey()
+	b.Validator = otherPrivKey.PublicKey()
 
-	ha := b.Hash()
-	assert.False(t, ha.IsZero())
+	// validator modified
+	assert.NotNil(t, b.Verify())
 }

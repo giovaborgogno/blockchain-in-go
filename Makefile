@@ -5,4 +5,7 @@ run: build
 	./bin/blockchain-in-go
 
 test:
+	go test ./...
+
+testv:
 	go test -v ./...
